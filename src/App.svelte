@@ -2,6 +2,7 @@
 import Tailwindcss from './Tailwindcss.svelte';
 import { Route, Router } from 'svelte-routing';
 import Home from './pages/Home.svelte';
+import Cryptocurrency from './pages/Cryptocurrency.svelte';
 import NavigationItem from './components/NavigationItem.svelte';
 
 export let name: string;
@@ -14,10 +15,11 @@ export let url = '';
   <Router url="{url}">
     <nav>
       <NavigationItem to="/" label="Home" />
-      <NavigationItem to="/example" label="Example" />
+      <NavigationItem to="/cryptocurrency" label="Crypto" />
     </nav>
     <div>
       <Route path="/" component="{Home}" />
+      <Route path="/cryptocurrency" component="{Cryptocurrency}" />
     </div>
   </Router>
 </div>
