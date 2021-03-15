@@ -29,6 +29,7 @@ onMount(async () => {
     const upbitWebsocket = new UpbitWebsocketAPI().getSocket();
 
     const codes = fetchCodesResponse.data
+      // .filter((_, index) => index < 20)
       .filter((data) => data.market.startsWith('KRW'))
       .map((data) => {
         upbitMarketCodes[data.market] = data;
