@@ -1,7 +1,9 @@
 <style>
 .page-container {
+  font-family: 'Nanum Gothic', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    Roboto, Oxygen-Sans, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
   max-width: 720px;
-  margin: 0 auto;
+  margin: 4rem auto;
 }
 </style>
 
