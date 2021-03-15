@@ -6,31 +6,36 @@
 </style>
 
 <script lang="ts">
-import type { IUpbitCode, IUpbitMarketData } from '../models/Cryptocurrency';
-import CoinItem from '../components/CoinItem.svelte';
+import type {
+  IUpbitCurrencyCode,
+  IUpbitTickerData,
+} from '../models/Cryptocurrency';
+import CoinItem from '../components/CryptocurrencyItem.svelte';
 import { onMount } from 'svelte';
+import { upbitMarket } from '../stores/cryptocurrency';
+import UpbitAPI from '../apis/UpbitAPI';
+import UpbitWebsocketAPI from '../apis/websocket/UpbitWebsocketAPI';
+
 export let location;
-let upbitMarketDataDict: { [key: string]: IUpbitMarketData } = {};
+let messageReceived = 0;
+let upbitMarketCodes: { [key: string]: IUpbitCurrencyCode } = {};
+let upbitTickerDataDict: { [key: string]: IUpbitTickerData } = {};
 
-async function fetchCodes(): Promise<IUpbitCode[]> {
-  const response = await fetch(
-    'https://api.upbit.com/v1/market/all?isDetails=false'
-  );
-  return await response.json();
-}
+onMount(async () => {
+  try {
+    const fetchCodesResponse = await UpbitAPI.fetchCodes();
+    const upbitWebsocket = new UpbitWebsocketAPI().getSocket();
 
-onMount(() => {
-  fetchCodes().then((data) => {
-    const upbitSocket = new WebSocket('wss://api.upbit.com/websocket/v1');
-    upbitSocket.binaryType = 'arraybuffer';
-
-    const codes = data
+    const codes = fetchCodesResponse.data
       .filter((data) => data.market.startsWith('KRW'))
-      .map((data) => data.market);
+      .map((data) => {
+        upbitMarketCodes[data.market] = data;
+        return data.market;
+      });
 
-    upbitSocket.onopen = () => {
+    upbitWebsocket.onopen = () => {
       console.log('onopen');
-      return upbitSocket.send(
+      return upbitWebsocket.send(
         JSON.stringify([
           { ticket: 'test' },
           {
@@ -41,18 +46,32 @@ onMount(() => {
       );
     };
 
-    upbitSocket.onmessage = (event) => {
+    upbitWebsocket.onmessage = (event) => {
       const decoder = new TextDecoder();
       const message = decoder.decode(event.data);
-      const upbitMarketData: IUpbitMarketData = JSON.parse(message);
-      upbitMarketDataDict[upbitMarketData.code] = upbitMarketData;
+      const tickerData: IUpbitTickerData = JSON.parse(message);
+      messageReceived++;
+      upbitMarket.update((value) => ({
+        ...value,
+        [tickerData.code]: tickerData,
+      }));
     };
-  });
+
+    upbitMarket.subscribe((value) => {
+      upbitTickerDataDict = value;
+    });
+  } catch (e) {
+    throw e;
+  }
 });
 </script>
 
 <div class="page-container">
-  {#each Object.values(upbitMarketDataDict) as coin (coin.code)}
-    <CoinItem marketData="{coin}" />
+  <h1>Message received: {messageReceived}</h1>
+  {#each Object.values(upbitTickerDataDict) as tickerData (tickerData.code)}
+    <CoinItem
+      tickerData="{tickerData}"
+      koreanName="{upbitMarketCodes[tickerData.code].korean_name}"
+      englishName="{upbitMarketCodes[tickerData.code].english_name}" />
   {/each}
 </div>

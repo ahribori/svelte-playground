@@ -1,10 +1,10 @@
-export interface IUpbitCode {
+export interface IUpbitCurrencyCode {
   english_name: string;
   korean_name: string;
   market: string;
 }
 
-export interface IUpbitMarketData {
+export interface IUpbitTickerData {
   type: string;
   code: string;
   opening_price: number;
