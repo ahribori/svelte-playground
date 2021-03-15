@@ -1,49 +1,16 @@
+<style>
+.page-container {
+  max-width: 720px;
+  margin: 0 auto;
+}
+</style>
+
 <script lang="ts">
-interface IUpbitCode {
-  english_name: string;
-  korean_name: string;
-  market: string;
-}
-
-interface IUpbitTickerData {
-  type: string;
-  code: string;
-  opening_price: number;
-  high_price: number;
-  low_price: number;
-  trade_price: number;
-  prev_closing_price: number;
-  acc_trade_price: number;
-  change: string;
-  change_price: number;
-  signed_change_price: number;
-  change_rate: number;
-  signed_change_rate: number;
-  ask_bid: string;
-  trade_volume: number;
-  acc_trade_volume: number;
-  trade_date: string;
-  trade_time: string;
-  trade_timestamp: number;
-  acc_ask_volume: number;
-  acc_bid_volume: number;
-  highest_52_week_price: number;
-  highest_52_week_date: string;
-  lowest_52_week_price: number;
-  lowest_52_week_date: string;
-  trade_status: any;
-  market_state: string;
-  market_state_for_ios: any;
-  is_trading_suspended: boolean;
-  delisting_date: any;
-  market_warning: string;
-  timestamp: number;
-  acc_trade_price_24h: number;
-  acc_trade_volume_24h: number;
-  stream_type: string;
-}
-
-let upbitMarketDataDict: { [key: string]: IUpbitTickerData } = {};
+import type { IUpbitCode, IUpbitMarketData } from '../models/Cryptocurrency';
+import CoinItem from '../components/CoinItem.svelte';
+import { onMount } from 'svelte';
+export let location;
+let upbitMarketDataDict: { [key: string]: IUpbitMarketData } = {};
 
 async function fetchCodes(): Promise<IUpbitCode[]> {
   const response = await fetch(
@@ -52,32 +19,40 @@ async function fetchCodes(): Promise<IUpbitCode[]> {
   return await response.json();
 }
 
-fetchCodes().then((data) => {
-  const upbitSocket = new WebSocket('wss://api.upbit.com/websocket/v1');
-  upbitSocket.binaryType = 'arraybuffer';
+onMount(() => {
+  fetchCodes().then((data) => {
+    const upbitSocket = new WebSocket('wss://api.upbit.com/websocket/v1');
+    upbitSocket.binaryType = 'arraybuffer';
 
-  const codes = data
-    .filter((data) => data.market.startsWith('KRW'))
-    .map((data) => data.market);
+    const codes = data
+      .filter((data) => data.market.startsWith('KRW'))
+      .map((data) => data.market);
 
-  upbitSocket.onopen = () => {
-    console.log('onopen');
-    return upbitSocket.send(
-      JSON.stringify([
-        { ticket: 'test' },
-        {
-          type: 'ticker',
-          codes,
-        },
-      ])
-    );
-  };
+    upbitSocket.onopen = () => {
+      console.log('onopen');
+      return upbitSocket.send(
+        JSON.stringify([
+          { ticket: 'test' },
+          {
+            type: 'ticker',
+            codes,
+          },
+        ])
+      );
+    };
 
-  upbitSocket.onmessage = (event) => {
-    const decoder = new TextDecoder();
-    const message = decoder.decode(event.data);
-    const data: IUpbitTickerData = JSON.parse(message);
-    upbitMarketDataDict[data.code] = data;
-  };
+    upbitSocket.onmessage = (event) => {
+      const decoder = new TextDecoder();
+      const message = decoder.decode(event.data);
+      const upbitMarketData: IUpbitMarketData = JSON.parse(message);
+      upbitMarketDataDict[upbitMarketData.code] = upbitMarketData;
+    };
+  });
 });
 </script>
+
+<div class="page-container">
+  {#each Object.values(upbitMarketDataDict) as coin (coin.code)}
+    <CoinItem marketData="{coin}" />
+  {/each}
+</div>
